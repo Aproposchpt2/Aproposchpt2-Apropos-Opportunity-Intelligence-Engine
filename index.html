@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>APROPOS Procurement Intelligence Engine — Command Center</title>
+  <link rel="stylesheet" href="assets/command-center.css">
+</head>
+<body>
+  <div class="shell">
+    <header class="masthead">
+      <div>
+        <p class="eyebrow">APROPOS PROCUREMENT INTELLIGENCE ENGINE</p>
+        <h1>Operational Command Center</h1>
+        <p class="subtitle">Internal control interface for the complete procurement intelligence pipeline.</p>
+      </div>
+      <div class="status-cluster">
+        <span class="label">SYSTEM STATUS</span>
+        <span id="systemStatus" class="status-pill status-idle">INITIALIZING</span>
+        <span id="lastRefresh" class="timestamp">Not refreshed</span>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero-grid">
+        <article class="panel command-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="section-kicker">PRIMARY COMMAND</p>
+              <h2>Daily Operations</h2>
+            </div>
+            <span id="currentStage" class="stage-badge">IDLE</span>
+          </div>
+          <p class="panel-copy">Initiate the governed five-agent workflow. The orchestrator creates the run, prevents duplicates, executes each stage sequentially, records evidence, retries recoverable failures, and generates the Daily Executive Intelligence Brief.</p>
+          <button id="beginButton" class="primary-action" type="button">BEGIN DAILY OPERATIONS</button>
+          <div class="secondary-actions">
+            <button id="resumeButton" type="button">Resume Execution</button>
+            <button id="stopButton" type="button" class="danger">Stop Execution</button>
+            <button id="refreshButton" type="button">Refresh Status</button>
+          </div>
+          <p id="commandMessage" class="command-message" role="status" aria-live="polite"></p>
+        </article>
+
+        <article class="panel execution-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="section-kicker">CURRENT EXECUTION</p>
+              <h2 id="runIdentifier">No active run</h2>
+            </div>
+          </div>
+          <dl class="execution-facts">
+            <div><dt>Execution State</dt><dd id="executionState">Idle</dd></div>
+            <div><dt>Started</dt><dd id="runStarted">—</dd></div>
+            <div><dt>Completed</dt><dd id="runCompleted">—</dd></div>
+            <div><dt>Runtime</dt><dd id="runRuntime">—</dd></div>
+          </dl>
+          <div class="progress-track" aria-label="Workflow progress">
+            <div id="progressBar" class="progress-bar"></div>
+          </div>
+          <p id="progressText" class="progress-text">0 of 5 agents completed</p>
+        </article>
+      </section>
+
+      <section class="panel">
+        <div class="panel-heading">
+          <div>
+            <p class="section-kicker">AGENT STATUS</p>
+            <h2>Sequential Workflow</h2>
+          </div>
+        </div>
+        <div id="agentGrid" class="agent-grid"></div>
+      </section>
+
+      <section class="metrics-grid" aria-label="Pipeline metrics">
+        <article class="panel metric-card"><span>Publishers Processed</span><strong id="publishersProcessed">0</strong></article>
+        <article class="panel metric-card"><span>Opportunities Discovered</span><strong id="opportunitiesDiscovered">0</strong></article>
+        <article class="panel metric-card"><span>Opportunities Inserted</span><strong id="opportunitiesInserted">0</strong></article>
+        <article class="panel metric-card"><span>Opportunities Updated</span><strong id="opportunitiesUpdated">0</strong></article>
+        <article class="panel metric-card"><span>Documents Processed</span><strong id="documentsProcessed">0</strong></article>
+        <article class="panel metric-card"><span>Contract DNA Completed</span><strong id="contractDnaCompleted">0</strong></article>
+        <article class="panel metric-card"><span>Eligible Opportunities</span><strong id="eligibleOpportunities">0</strong></article>
+        <article class="panel metric-card"><span>Published Opportunities</span><strong id="publishedOpportunities">0</strong></article>
+      </section>
+
+      <section class="two-column">
+        <article class="panel">
+          <div class="panel-heading">
+            <div>
+              <p class="section-kicker">SYSTEM HEALTH</p>
+              <h2>Operational Statistics</h2>
+            </div>
+          </div>
+          <dl class="health-grid">
+            <div><dt>Running Jobs</dt><dd id="runningJobs">0</dd></div>
+            <div><dt>Completed Jobs</dt><dd id="completedJobs">0</dd></div>
+            <div><dt>Failed Jobs</dt><dd id="failedJobs">0</dd></div>
+            <div><dt>Retry Count</dt><dd id="retryCount">0</dd></div>
+            <div><dt>Queue Depth</dt><dd id="queueDepth">0</dd></div>
+            <div><dt>Processing Time</dt><dd id="processingTime">—</dd></div>
+            <div class="wide"><dt>Connector Health</dt><dd id="connectorHealth">Unknown</dd></div>
+          </dl>
+        </article>
+
+        <article class="panel brief-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="section-kicker">EXECUTIVE INTELLIGENCE</p>
+              <h2>Daily Executive Intelligence Brief</h2>
+            </div>
+            <button id="briefButton" type="button">Load Brief</button>
+          </div>
+          <div id="executiveBrief" class="brief-content">
+            <p>No executive brief has been loaded.</p>
+          </div>
+        </article>
+      </section>
+
+      <section class="two-column">
+        <article class="panel">
+          <div class="panel-heading">
+            <div><p class="section-kicker">HISTORY</p><h2>Recent Executions</h2></div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Run</th><th>Status</th><th>Stage</th><th>Started</th></tr></thead>
+              <tbody id="historyBody"><tr><td colspan="4">No execution history available.</td></tr></tbody>
+            </table>
+          </div>
+        </article>
+        <article class="panel">
+          <div class="panel-heading">
+            <div><p class="section-kicker">FAILURE LOG</p><h2>Operational Evidence</h2></div>
+          </div>
+          <div id="failureLog" class="failure-log"><p>No failures recorded.</p></div>
+        </article>
+      </section>
+    </main>
+
+    <footer>
+      <span>APROPOS GROUP LLC</span>
+      <span>Internal operational system</span>
+    </footer>
+  </div>
+  <script src="assets/command-center.js" defer></script>
+</body>
+</html>

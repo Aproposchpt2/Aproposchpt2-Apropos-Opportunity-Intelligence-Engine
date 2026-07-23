@@ -1,0 +1,36 @@
+name: Command Center Validation
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate root dashboard
+        run: |
+          test -f index.html
+          test -f assets/command-center.css
+          test -f assets/command-center.js
+          grep -q "BEGIN DAILY OPERATIONS" index.html
+          grep -q "Daily Executive Intelligence Brief" index.html
+      - name: Validate dashboard JavaScript
+        run: node --check assets/command-center.js
+      - name: Validate operational schema
+        run: |
+          for table in command_runs command_jobs command_events command_failures command_metrics daily_executive_briefs system_status; do
+            grep -q "create table if not exists public.${table}" supabase/migrations/20260723230000_command_center.sql
+            grep -q "alter table public.${table} enable row level security" supabase/migrations/20260723230000_command_center.sql
+          done
+      - name: Validate five-agent orchestration
+        run: |
+          test "$(grep -c "functionName: 'agent-" supabase/functions/_shared/command.ts)" -eq 5
+          grep -q "for (const agent of AGENT_SEQUENCE)" supabase/functions/command-begin-daily-operations/index.ts
+          grep -q "max_attempts" supabase/functions/command-begin-daily-operations/index.ts
+          grep -q "idempotencyKey" supabase/functions/command-begin-daily-operations/index.ts
+      - name: Validate browser credential boundary
+        run: |
+          ! grep -Eiq "service_role|SUPABASE_SERVICE_ROLE_KEY" index.html assets/command-center.js assets/command-center.css
