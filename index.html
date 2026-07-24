@@ -33,6 +33,51 @@
             <span id="currentStage" class="stage-badge">IDLE</span>
           </div>
           <p class="panel-copy">Initiate the governed five-agent workflow. The orchestrator creates the run, prevents duplicates, executes each stage sequentially, records evidence, retries recoverable failures, and generates the Daily Executive Intelligence Brief.</p>
+
+          <section class="acquisition-config" aria-labelledby="acquisitionConfigHeading">
+            <div class="config-heading">
+              <div>
+                <p class="section-kicker">ACQUISITION CONFIGURATION</p>
+                <h3 id="acquisitionConfigHeading">Controlled Publisher Batch</h3>
+              </div>
+              <span id="providerHealthBadge" class="status-pill status-idle">NOT SELECTED</span>
+            </div>
+
+            <div class="config-grid">
+              <label class="field-group">
+                <span>Acquisition Intelligence Provider</span>
+                <select id="providerSelect" aria-describedby="providerStatusText">
+                  <option value="">Select Provider</option>
+                  <option value="openai">OpenAI</option>
+                  <option value="anthropic">Anthropic</option>
+                  <option value="manual">Manual Acquisition</option>
+                </select>
+                <small id="providerStatusText">Select a provider to display status and health.</small>
+              </label>
+
+              <div class="field-group publisher-picker">
+                <span>Select Publisher</span>
+                <input id="publisherSearch" type="search" placeholder="Search publisher ID, name, platform, or vendor" autocomplete="off">
+                <select id="publisherSelect" size="5" aria-label="Publisher Registry"></select>
+                <div class="picker-actions">
+                  <button id="addPublisherButton" type="button">Add Publisher</button>
+                  <button id="removePublisherButton" type="button">Remove Publisher</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="queue-heading">
+              <div>
+                <span>Selected Publishers</span>
+                <small>Sequential execution order</small>
+              </div>
+              <strong id="publisherCount">0 / 5</strong>
+            </div>
+            <ol id="publisherQueue" class="publisher-queue">
+              <li class="empty-state">No publishers selected.</li>
+            </ol>
+          </section>
+
           <button id="beginButton" class="primary-action" type="button">BEGIN DAILY OPERATIONS</button>
           <div class="secondary-actions">
             <button id="resumeButton" type="button">Resume Execution</button>
@@ -51,14 +96,24 @@
           </div>
           <dl class="execution-facts">
             <div><dt>Execution State</dt><dd id="executionState">Idle</dd></div>
+            <div><dt>Provider</dt><dd id="currentProvider">—</dd></div>
+            <div><dt>Current Publisher</dt><dd id="currentPublisher">—</dd></div>
+            <div><dt>Remaining Publishers</dt><dd id="remainingPublishers">0</dd></div>
+            <div><dt>Completed Publishers</dt><dd id="completedPublishers">0</dd></div>
+            <div><dt>Failed Publishers</dt><dd id="failedPublishers">0</dd></div>
+            <div><dt>Manual Review Count</dt><dd id="manualReviewCount">0</dd></div>
+            <div><dt>Current Runtime</dt><dd id="runRuntime">—</dd></div>
+            <div><dt>Total Runtime</dt><dd id="totalRuntime">—</dd></div>
+            <div><dt>Publisher Success Rate</dt><dd id="publisherSuccessRate">—</dd></div>
+            <div><dt>Acquisition Health</dt><dd id="acquisitionHealth">Unknown</dd></div>
+            <div><dt>Overall System Health</dt><dd id="overallSystemHealth">Unknown</dd></div>
             <div><dt>Started</dt><dd id="runStarted">—</dd></div>
             <div><dt>Completed</dt><dd id="runCompleted">—</dd></div>
-            <div><dt>Runtime</dt><dd id="runRuntime">—</dd></div>
           </dl>
-          <div class="progress-track" aria-label="Workflow progress">
+          <div class="progress-track" aria-label="Publisher batch progress">
             <div id="progressBar" class="progress-bar"></div>
           </div>
-          <p id="progressText" class="progress-text">0 of 5 agents completed</p>
+          <p id="progressText" class="progress-text">0 of 0 publishers completed</p>
         </article>
       </section>
 
@@ -70,6 +125,43 @@
           </div>
         </div>
         <div id="agentGrid" class="agent-grid"></div>
+      </section>
+
+      <section class="two-column acquisition-operations-grid">
+        <article class="panel">
+          <div class="panel-heading">
+            <div><p class="section-kicker">ACQUISITION OPERATIONS</p><h2>Publisher Batch Status</h2></div>
+          </div>
+          <div id="publisherStatusList" class="publisher-status-list"><p>No publisher batch is active.</p></div>
+        </article>
+        <article class="panel">
+          <div class="panel-heading">
+            <div><p class="section-kicker">LIVE ACQUISITION FEED</p><h2>Real-Time Activity</h2></div>
+          </div>
+          <div id="acquisitionFeed" class="acquisition-feed" aria-live="polite"><p>No acquisition events recorded.</p></div>
+        </article>
+      </section>
+
+      <section class="panel">
+        <div class="panel-heading">
+          <div><p class="section-kicker">COMPLETED PUBLISHER RUNS</p><h2>Verified Acquisition Results</h2></div>
+        </div>
+        <div id="completedPublisherRuns" class="completed-runs"><p>No completed publisher runs available.</p></div>
+      </section>
+
+      <section id="manualInterventionPanel" class="panel intervention-panel" hidden>
+        <div class="panel-heading">
+          <div><p class="section-kicker">⚠ MANUAL INTERVENTION REQUIRED</p><h2 id="manualPublisherName">Publisher requires operator action</h2></div>
+          <span class="status-pill status-manual_intervention_required">MANUAL REVIEW</span>
+        </div>
+        <dl class="intervention-grid">
+          <div><dt>Publisher</dt><dd id="manualPublisher">—</dd></div>
+          <div><dt>Current Step</dt><dd id="manualStep">—</dd></div>
+          <div><dt>Reason</dt><dd id="manualReason">—</dd></div>
+          <div><dt>Recommended Action</dt><dd id="manualAction">—</dd></div>
+          <div><dt>Resume Point</dt><dd id="manualResumePoint">—</dd></div>
+        </dl>
+        <button id="resumePublisherButton" type="button">Resume Publisher</button>
       </section>
 
       <section class="metrics-grid" aria-label="Pipeline metrics">
@@ -86,10 +178,7 @@
       <section class="two-column">
         <article class="panel">
           <div class="panel-heading">
-            <div>
-              <p class="section-kicker">SYSTEM HEALTH</p>
-              <h2>Operational Statistics</h2>
-            </div>
+            <div><p class="section-kicker">SYSTEM HEALTH</p><h2>Operational Statistics</h2></div>
           </div>
           <dl class="health-grid">
             <div><dt>Running Jobs</dt><dd id="runningJobs">0</dd></div>
@@ -104,43 +193,26 @@
 
         <article class="panel brief-panel">
           <div class="panel-heading">
-            <div>
-              <p class="section-kicker">EXECUTIVE INTELLIGENCE</p>
-              <h2>Daily Executive Intelligence Brief</h2>
-            </div>
+            <div><p class="section-kicker">EXECUTIVE INTELLIGENCE</p><h2>Daily Executive Intelligence Brief</h2></div>
             <button id="briefButton" type="button">Load Brief</button>
           </div>
-          <div id="executiveBrief" class="brief-content">
-            <p>No executive brief has been loaded.</p>
-          </div>
+          <div id="executiveBrief" class="brief-content"><p>No executive brief has been loaded.</p></div>
         </article>
       </section>
 
       <section class="two-column">
         <article class="panel">
-          <div class="panel-heading">
-            <div><p class="section-kicker">HISTORY</p><h2>Recent Executions</h2></div>
-          </div>
-          <div class="table-wrap">
-            <table>
-              <thead><tr><th>Run</th><th>Status</th><th>Stage</th><th>Started</th></tr></thead>
-              <tbody id="historyBody"><tr><td colspan="4">No execution history available.</td></tr></tbody>
-            </table>
-          </div>
+          <div class="panel-heading"><div><p class="section-kicker">HISTORY</p><h2>Recent Executions</h2></div></div>
+          <div class="table-wrap"><table><thead><tr><th>Run</th><th>Status</th><th>Stage</th><th>Started</th></tr></thead><tbody id="historyBody"><tr><td colspan="4">No execution history available.</td></tr></tbody></table></div>
         </article>
         <article class="panel">
-          <div class="panel-heading">
-            <div><p class="section-kicker">FAILURE LOG</p><h2>Operational Evidence</h2></div>
-          </div>
+          <div class="panel-heading"><div><p class="section-kicker">FAILURE LOG</p><h2>Operational Evidence</h2></div></div>
           <div id="failureLog" class="failure-log"><p>No failures recorded.</p></div>
         </article>
       </section>
     </main>
 
-    <footer>
-      <span>APROPOS GROUP LLC</span>
-      <span>Internal operational system</span>
-    </footer>
+    <footer><span>APROPOS GROUP LLC</span><span>Internal operational system</span></footer>
   </div>
   <script src="assets/command-center.js" defer></script>
 </body>
