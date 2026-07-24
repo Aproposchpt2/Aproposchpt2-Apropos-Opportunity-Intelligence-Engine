@@ -11,158 +11,36 @@
   <link rel="stylesheet" href="assets/command-center.css">
 </head>
 <body>
-  <div class="operations-shell">
-    <header class="command-header">
-      <div>
-        <p class="eyebrow">APROPOS PROCUREMENT INTELLIGENCE ENGINE</p>
-        <h1>Procurement Intelligence Operations Center</h1>
-        <p class="subtitle">Connecting Government Needs with Business Capability.</p>
-      </div>
-      <div class="header-status">
-        <span class="micro-label">OVERALL SYSTEM HEALTH</span>
-        <span id="systemStatus" class="status-pill status-idle">INITIALIZING</span>
-        <span id="lastRefresh" class="timestamp">Not refreshed</span>
-      </div>
-    </header>
+<div class="operations-shell">
+<header class="command-header"><div><p class="eyebrow">APROPOS PROCUREMENT INTELLIGENCE ENGINE</p><h1>Procurement Intelligence Operations Center</h1><p class="subtitle">Connecting Government Needs with Business Capability.</p></div><div class="header-status"><span>OVERALL SYSTEM HEALTH</span><strong id="systemStatus" class="status-pill status-idle">INITIALIZING</strong><small id="lastRefresh">Not refreshed</small></div></header>
+<main>
+<section class="panel readiness-panel"><div><p class="section-kicker">MISSION READINESS</p><div class="readiness-score"><strong id="missionReadinessValue">0%</strong><span id="missionReadinessState">NOT READY</span></div><div class="readiness-track"><div id="missionReadinessBar"></div></div><p id="readinessDecision">Complete Mission Pre-Flight to authorize execution.</p></div><div class="readiness-grid"><div><span>Publisher Registry</span><strong id="registryHealth">Ready</strong></div><div><span>Connector Health</span><strong id="connectorHealth">Assessing</strong></div><div><span>AI Provider</span><strong id="providerReadiness">Not Validated</strong></div><div><span>Database</span><strong id="databaseStatus">Connected</strong></div><div><span>System Health</span><strong id="overallSystemHealth">Operational</strong></div><div><span>Mission Posture</span><strong id="missionPosture">Standby</strong></div></div></section>
 
-    <main>
-      <section class="mission-readiness panel panel-command">
-        <div class="readiness-core">
-          <p class="section-kicker">MISSION READINESS</p>
-          <div class="readiness-score"><strong id="missionReadinessValue">0%</strong><span id="missionReadinessState">ASSESSING</span></div>
-          <div class="readiness-track"><div id="missionReadinessBar"></div></div>
-          <p id="readinessDecision" class="decision-line">System intelligence is evaluating today's operational readiness.</p>
-        </div>
-        <div class="readiness-grid">
-          <div><span>Publisher Registry</span><strong id="registryHealth">Assessing</strong></div>
-          <div><span>Connector Health</span><strong id="connectorHealth">Unknown</strong></div>
-          <div><span>AI Provider Status</span><strong id="providerReadiness">Not Selected</strong></div>
-          <div><span>Database Status</span><strong id="databaseStatus">Unknown</strong></div>
-          <div><span>System Health</span><strong id="overallSystemHealth">Unknown</strong></div>
-          <div><span>Mission Posture</span><strong id="missionPosture">Standby</strong></div>
-        </div>
-      </section>
+<section class="panel preflight-panel">
+<div class="panel-heading"><div><p class="section-kicker">MISSION PRE-FLIGHT</p><h2>Operational Authorization Sequence</h2></div><span id="preflightState" class="status-pill status-idle">INCOMPLETE</span></div>
+<div class="preflight-steps">
+<article class="preflight-step" data-step="1"><header><span>01</span><div><p>MISSION CONFIGURATION</p><h3>Define the official mission record</h3></div><strong id="missionConfigStatus">Required</strong></header><div class="preflight-fields"><label>Mission Name<input id="missionName" type="text" placeholder="Example: Arizona Daily Acquisition"></label><label>Mission Type<select id="missionType"><option value="">Select mission type</option><option>State</option><option>Discovery</option><option>Acquisition</option><option>Refresh</option><option>Recovery</option><option>Engineering Test</option></select></label><label>Estimated Scope<input id="missionScope" type="text" placeholder="Statewide open procurement inventory"></label><label>Operator<input id="missionOperator" type="text" value="Jeff"></label><label class="wide">Mission Notes<textarea id="missionNotes" rows="3" placeholder="Mission objective, constraints, or executive direction"></textarea></label></div></article>
 
-      <section class="briefing-grid">
-        <article class="panel executive-briefing">
-          <div class="panel-heading"><div><p class="section-kicker">EXECUTIVE BRIEFING</p><h2 id="greeting">Good Morning Jeff</h2></div><button id="briefButton" class="quiet-button" type="button">Refresh Brief</button></div>
-          <p class="brief-lead">Yesterday's Operation</p>
-          <div class="briefing-metrics">
-            <div><span>Publishers Executed</span><strong id="publishersProcessed">0</strong></div>
-            <div><span>New Opportunities</span><strong id="opportunitiesInserted">0</strong></div>
-            <div><span>Documents Processed</span><strong id="documentsProcessed">0</strong></div>
-            <div><span>Dashboard Releases</span><strong id="publishedOpportunities">0</strong></div>
-            <div><span>Customer Satisfaction</span><strong id="customerSatisfaction">—</strong></div>
-          </div>
-          <div id="executiveBrief" class="recommendations"><p>Executive recommendations will appear after system intelligence loads.</p></div>
-        </article>
+<article class="preflight-step" data-step="2"><header><span>02</span><div><p>AI PROVIDER CONFIGURATION</p><h3>Validate intelligence support</h3></div><strong id="providerConfigStatus">Required</strong></header><div class="provider-grid"><label>Acquisition Intelligence Provider<select id="providerSelect"><option value="">Select Provider</option><option value="openai">OpenAI</option><option value="anthropic">Anthropic</option><option value="manual">Manual</option></select></label><div class="provider-facts"><div><span>Provider Status</span><strong id="providerStatusText">Not selected</strong></div><div><span>API Connection</span><strong id="providerConnection">Not tested</strong></div><div><span>Authentication</span><strong id="providerAuthentication">Pending</strong></div><div><span>Current Model</span><strong id="providerModel">—</strong></div><div><span>Estimated Token Budget</span><strong id="tokenBudget">0</strong></div><div><span>Estimated Mission Cost</span><strong id="estimatedAiCost">$0.00</strong></div></div><button id="testProviderButton" type="button">TEST CONNECTION</button></div></article>
 
-        <article class="panel decision-center">
-          <div class="panel-heading"><div><p class="section-kicker">EXECUTIVE DECISION CENTER</p><h2>Highest Priority</h2></div><span id="decisionPriority" class="priority-tag">ANALYZING</span></div>
-          <h3 id="decisionPublisher">No publisher recommendation available</h3>
-          <div class="decision-facts">
-            <div><span>Estimated Opportunities</span><strong id="decisionOpportunities">—</strong></div>
-            <div><span>Estimated Contract Value</span><strong id="decisionValue">—</strong></div>
-          </div>
-          <p><span class="micro-label">REASON</span><br><span id="decisionReason">Awaiting forecast intelligence.</span></p>
-          <p><span class="micro-label">RECOMMENDATION</span><br><strong id="decisionRecommendation">Hold for system recommendation</strong></p>
-          <button id="executeRecommendation" class="execute-button" type="button" disabled>EXECUTE RECOMMENDATION</button>
-        </article>
-      </section>
+<article class="preflight-step" data-step="3"><header><span>03</span><div><p>PUBLISHER CONFIGURATION</p><h3>Approve the mission acquisition batch</h3></div><strong id="publisherConfigStatus">Required</strong></header><div class="publisher-layout"><div><label>State<select id="publisherState"><option value="">Select state</option><option value="Arizona">Arizona</option><option value="California">California</option><option value="Nevada">Nevada</option></select></label><label>Organization Type<select id="organizationType"><option value="">Select type</option><option>State Agencies</option><option>Universities</option><option>Counties</option><option>Cities</option><option>School Districts</option></select></label><label>Publisher<select id="publisherSelect"><option value="">Select publisher</option></select></label><button id="addPublisherButton" type="button">ADD TO MISSION</button></div><div class="publisher-intelligence"><h4 id="publisherProfileName">Publisher Intelligence</h4><dl><div><dt>Publisher ID</dt><dd id="publisherProfileId">—</dd></div><div><dt>Technology Platform</dt><dd id="publisherPlatform">—</dd></div><div><dt>Technology Vendor</dt><dd id="publisherVendor">—</dd></div><div><dt>Acquisition Class</dt><dd id="publisherClass">—</dd></div><div><dt>Preferred Engine</dt><dd id="publisherEngine">—</dd></div><div><dt>Connector Health</dt><dd id="publisherConnectorHealth">—</dd></div><div><dt>Last Successful Run</dt><dd id="publisherLastRun">—</dd></div><div><dt>Estimated Runtime</dt><dd id="publisherRuntime">—</dd></div><div><dt>Estimated Opportunities</dt><dd id="publisherOpportunities">—</dd></div><div><dt>Estimated Documents</dt><dd id="publisherDocuments">—</dd></div></dl></div></div><div class="mission-batch"><div class="batch-heading"><span>MISSION BATCH</span><strong id="publisherCount">0 / 5</strong></div><ol id="publisherQueue"><li class="empty-state">No publishers approved.</li></ol></div></article>
 
-      <section class="operations-grid">
-        <article class="panel explorer-panel">
-          <div class="panel-heading"><div><p class="section-kicker">PUBLISHER EXPLORER</p><h2>Operational Registry</h2></div><span id="publisherCount" class="counter">0 / 5</span></div>
-          <input id="publisherSearch" class="command-search" type="search" placeholder="Search publisher intelligence" autocomplete="off">
-          <div id="publisherExplorer" class="publisher-explorer"></div>
-          <select id="publisherSelect" hidden aria-hidden="true"></select>
-          <button id="addPublisherButton" hidden type="button">Add Publisher</button>
-          <button id="removePublisherButton" hidden type="button">Remove Publisher</button>
-        </article>
+<article class="preflight-step" data-step="4"><header><span>04</span><div><p>MISSION ESTIMATE</p><h3>Predict operational outcome and load</h3></div><strong id="estimateStatus">Pending</strong></header><div class="estimate-grid"><div><span>Estimated Runtime</span><strong id="forecastRuntime">—</strong></div><div><span>Estimated Opportunities</span><strong id="forecastOpportunities">0</strong></div><div><span>Estimated Documents</span><strong id="forecastDocuments">0</strong></div><div><span>Estimated Contract DNA</span><strong id="forecastContractDna">0</strong></div><div><span>Estimated AOIE Matches</span><strong id="forecastMatches">0</strong></div><div><span>Estimated Dashboard Releases</span><strong id="forecastReleases">0</strong></div><div><span>Estimated System Load</span><strong id="forecastLoad">Low</strong></div><div><span>Estimated AI Cost</span><strong id="forecastCost">$0.00</strong></div><div class="confidence"><span>Mission Confidence</span><strong id="missionConfidence">0%</strong></div></div></article>
 
-        <article class="panel intelligence-panel">
-          <div class="panel-heading"><div><p class="section-kicker">PUBLISHER INTELLIGENCE</p><h2 id="intelligencePublisherName">Select a publisher</h2></div><span id="intelligenceConnectorHealth" class="status-pill status-idle">UNKNOWN</span></div>
-          <dl class="intelligence-profile">
-            <div><dt>Publisher ID</dt><dd id="intelligencePublisherId">—</dd></div>
-            <div><dt>Technology Vendor</dt><dd id="intelligenceVendor">—</dd></div>
-            <div><dt>Procurement Platform</dt><dd id="intelligencePlatform">—</dd></div>
-            <div><dt>Connector Type</dt><dd id="intelligenceConnectorType">—</dd></div>
-            <div><dt>Last Successful Acquisition</dt><dd id="intelligenceLastRun">—</dd></div>
-            <div><dt>Average Runtime</dt><dd id="intelligenceRuntime">—</dd></div>
-            <div><dt>Average Opportunities</dt><dd id="intelligenceAverageOpportunities">—</dd></div>
-            <div><dt>Success Rate</dt><dd id="intelligenceSuccessRate">—</dd></div>
-            <div><dt>Estimated Today's Opportunities</dt><dd id="intelligenceForecast">—</dd></div>
-            <div><dt>Estimated Runtime</dt><dd id="intelligenceEstimatedRuntime">—</dd></div>
-          </dl>
-          <div class="intelligence-actions"><button id="addToMissionButton" type="button" disabled>Add to Today's Mission</button><button id="viewHistoryButton" type="button" disabled>View History</button><button id="runIndividuallyButton" type="button" disabled>Run Individually</button></div>
-        </article>
-      </section>
+<article class="preflight-step" data-step="5"><header><span>05</span><div><p>MISSION READINESS</p><h3>Final authorization gate</h3></div><strong id="readinessStatus">NO</strong></header><div class="readiness-checklist"><div data-check="provider">Provider Connected</div><div data-check="publishers">Publishers Selected</div><div data-check="connectors">Connectors Healthy</div><div data-check="database">Database Connected</div><div data-check="queue">Queue Built</div><div data-check="estimate">Runtime Estimated</div><div data-check="approval">Executive Approval Ready</div></div></article>
+</div>
+</section>
 
-      <section class="mission-grid">
-        <article class="panel todays-mission">
-          <div class="panel-heading"><div><p class="section-kicker">TODAY'S MISSION</p><h2>Publisher Mission Order</h2></div><span id="currentStage" class="stage-badge">IDLE</span></div>
-          <div id="publisherQueue" class="mission-queue"><p class="empty-state">No publishers assigned to today's mission.</p></div>
-          <div class="forecast-strip">
-            <div><span>Estimated Runtime</span><strong id="forecastRuntime">—</strong></div>
-            <div><span>Estimated Opportunities</span><strong id="forecastOpportunities">0</strong></div>
-            <div><span>Estimated Documents</span><strong id="forecastDocuments">0</strong></div>
-            <div><span>Estimated Releases</span><strong id="forecastReleases">0</strong></div>
-            <div><span>Estimated Matching Volume</span><strong id="forecastMatches">0</strong></div>
-          </div>
-          <div class="provider-command"><label><span>Acquisition Intelligence Provider</span><select id="providerSelect"><option value="">Select Provider</option><option value="openai">OpenAI</option><option value="anthropic">Anthropic</option><option value="manual">Manual Acquisition</option></select></label><span id="providerHealthBadge" class="status-pill status-idle">NOT SELECTED</span></div>
-          <p id="providerStatusText" class="supporting-text">Select a provider to establish mission intelligence support.</p>
-          <button id="beginButton" class="primary-action" type="button">BEGIN DAILY OPERATIONS</button>
-          <div class="mission-controls"><button id="resumeButton" type="button">Resume Mission</button><button id="stopButton" type="button">Stop Mission</button><button id="refreshButton" type="button">Refresh Intelligence</button></div>
-          <p id="commandMessage" class="command-message" role="status" aria-live="polite"></p>
-        </article>
+<section class="mission-grid"><article class="panel mission-summary"><div class="panel-heading"><div><p class="section-kicker">MISSION LAUNCH</p><h2>Official Mission Summary</h2></div><span id="currentStage" class="status-pill status-idle">STANDBY</span></div><dl><div><dt>Mission Name</dt><dd id="summaryMissionName">—</dd></div><div><dt>Provider</dt><dd id="summaryProvider">—</dd></div><div><dt>Publishers</dt><dd id="summaryPublishers">0</dd></div><div><dt>Estimated Runtime</dt><dd id="summaryRuntime">—</dd></div><div><dt>Expected Opportunities</dt><dd id="summaryOpportunities">0</dd></div><div><dt>Expected Dashboard Releases</dt><dd id="summaryReleases">0</dd></div><div><dt>Operator</dt><dd id="summaryOperator">—</dd></div><div><dt>Timestamp</dt><dd id="summaryTimestamp">—</dd></div></dl><button id="beginButton" class="primary-action" type="button" disabled>BEGIN DAILY OPERATIONS</button><div class="mission-controls"><button id="resumeButton" type="button">Resume Mission</button><button id="stopButton" type="button">Stop Mission</button><button id="refreshButton" type="button">Refresh Intelligence</button></div><p id="commandMessage" role="status" aria-live="polite"></p></article><article class="panel"><div class="panel-heading"><div><p class="section-kicker">MISSION PROGRESS</p><h2 id="runIdentifier">No active mission</h2></div><span id="executionState" class="status-pill status-idle">IDLE</span></div><div class="progress-track"><div id="progressBar"></div></div><p id="progressText">0 of 0 publishers completed</p><dl><div><dt>Current Publisher</dt><dd id="currentPublisher">—</dd></div><div><dt>Next Publisher</dt><dd id="nextPublisher">—</dd></div><div><dt>Remaining Runtime</dt><dd id="remainingRuntime">—</dd></div><div><dt>Current Runtime</dt><dd id="runRuntime">—</dd></div></dl></article></section>
 
-        <article class="panel mission-progress">
-          <div class="panel-heading"><div><p class="section-kicker">MISSION PROGRESS</p><h2 id="runIdentifier">No active mission</h2></div><span id="executionState" class="status-pill status-idle">IDLE</span></div>
-          <div class="progress-track"><div id="progressBar" class="progress-bar"></div></div>
-          <p id="progressText" class="progress-text">0 of 0 publishers completed</p>
-          <dl class="progress-facts">
-            <div><dt>Current Publisher</dt><dd id="currentPublisher">—</dd></div>
-            <div><dt>Next Publisher</dt><dd id="nextPublisher">—</dd></div>
-            <div><dt>Remaining Publishers</dt><dd id="remainingPublishers">0</dd></div>
-            <div><dt>Remaining Runtime</dt><dd id="remainingRuntime">—</dd></div>
-            <div><dt>Completed Publishers</dt><dd id="completedPublishers">0</dd></div>
-            <div><dt>Failed Publishers</dt><dd id="failedPublishers">0</dd></div>
-            <div><dt>Manual Review Count</dt><dd id="manualReviewCount">0</dd></div>
-            <div><dt>Current Runtime</dt><dd id="runRuntime">—</dd></div>
-            <div><dt>Total Runtime</dt><dd id="totalRuntime">—</dd></div>
-            <div><dt>Publisher Success Rate</dt><dd id="publisherSuccessRate">—</dd></div>
-            <div><dt>Acquisition Health</dt><dd id="acquisitionHealth">Unknown</dd></div>
-            <div><dt>Provider</dt><dd id="currentProvider">—</dd></div>
-            <div hidden><dt>Started</dt><dd id="runStarted">—</dd></div><div hidden><dt>Completed</dt><dd id="runCompleted">—</dd></div>
-          </dl>
-        </article>
-      </section>
-
-      <section class="timeline-alerts-grid">
-        <article class="panel"><div class="panel-heading"><div><p class="section-kicker">LIVE MISSION TIMELINE</p><h2>Operational Sequence</h2></div></div><div id="acquisitionFeed" class="mission-timeline"><p>No mission events recorded.</p></div></article>
-        <article class="panel"><div class="panel-heading"><div><p class="section-kicker">EXECUTIVE ALERTS</p><h2>Action Required</h2></div></div><div id="executiveAlerts" class="executive-alerts"><p>No executive alerts.</p></div></article>
-      </section>
-
-      <section class="panel"><div class="panel-heading"><div><p class="section-kicker">COMPLETED MISSIONS</p><h2>Permanent Operational Evidence</h2></div></div><div id="completedPublisherRuns" class="completed-runs"><p>No completed publisher missions available.</p></div></section>
-
-      <section class="system-grid">
-        <article class="panel"><div class="panel-heading"><div><p class="section-kicker">SYSTEM INTELLIGENCE</p><h2>Operational Capacity</h2></div></div><div class="system-intelligence"><div><span>Publishers</span><strong id="systemPublishers">0</strong></div><div><span>Technology Vendors</span><strong id="technologyVendors">0</strong></div><div><span>Platforms</span><strong id="platformsCount">0</strong></div><div><span>Connectors</span><strong id="connectorsCount">0</strong></div><div><span>Healthy Connectors</span><strong id="healthyConnectors">0</strong></div><div><span>Attention Required</span><strong id="attentionRequired">0</strong></div></div></article>
-        <article class="panel"><div class="panel-heading"><div><p class="section-kicker">ACQUISITION INTELLIGENCE PROVIDERS</p><h2>Provider Readiness</h2></div></div><div id="providerMatrix" class="provider-matrix"></div></article>
-      </section>
-
-      <section class="panel"><div class="panel-heading"><div><p class="section-kicker">AGENT STATUS</p><h2>Sequential Workflow</h2></div></div><div id="agentGrid" class="agent-grid"></div></section>
-
-      <section id="manualInterventionPanel" class="panel intervention-panel" hidden><div class="panel-heading"><div><p class="section-kicker">MANUAL INTERVENTION REQUIRED</p><h2 id="manualPublisherName">Publisher requires operator action</h2></div><span class="status-pill status-manual_intervention_required">ACTION REQUIRED</span></div><dl class="intervention-grid"><div><dt>Publisher</dt><dd id="manualPublisher">—</dd></div><div><dt>Current Step</dt><dd id="manualStep">—</dd></div><div><dt>Reason</dt><dd id="manualReason">—</dd></div><div><dt>Recommended Action</dt><dd id="manualAction">—</dd></div><div><dt>Resume Point</dt><dd id="manualResumePoint">—</dd></div></dl><button id="resumePublisherButton" type="button">Resume Publisher</button></section>
-
-      <section class="support-grid" hidden aria-hidden="true">
-        <div id="publisherStatusList"></div><div id="historyBody"></div><div id="failureLog"></div>
-        <span id="opportunitiesDiscovered">0</span><span id="opportunitiesUpdated">0</span><span id="contractDnaCompleted">0</span><span id="eligibleOpportunities">0</span><span id="runningJobs">0</span><span id="completedJobs">0</span><span id="failedJobs">0</span><span id="retryCount">0</span><span id="queueDepth">0</span><span id="processingTime">—</span>
-      </section>
-    </main>
-
-    <footer><span>APROPOS GROUP LLC</span><span>Procurement Intelligence Operations Center</span></footer>
-  </div>
-  <script src="assets/runtime-config.js"></script>
-  <script src="assets/command-center.js" defer></script>
+<section class="timeline-grid"><article class="panel"><div class="panel-heading"><div><p class="section-kicker">LIVE MISSION TIMELINE</p><h2>Operational Sequence</h2></div></div><div id="acquisitionFeed" class="timeline"><p>No mission events recorded.</p></div></article><article class="panel"><div class="panel-heading"><div><p class="section-kicker">EXECUTIVE ALERTS</p><h2>Action Required</h2></div></div><div id="executiveAlerts"><p>No executive alerts.</p></div></article></section>
+<section class="panel"><div class="panel-heading"><div><p class="section-kicker">COMPLETED MISSIONS</p><h2>Permanent Operational Evidence</h2></div></div><div id="completedPublisherRuns"><p>No completed publisher missions available.</p></div></section>
+<section class="panel"><div class="panel-heading"><div><p class="section-kicker">AGENT STATUS</p><h2>Sequential Workflow</h2></div></div><div id="agentGrid" class="agent-grid"></div></section>
+<div hidden><span id="opportunitiesDiscovered"></span><span id="opportunitiesInserted"></span><span id="opportunitiesUpdated"></span><span id="documentsProcessed"></span><span id="contractDnaCompleted"></span><span id="eligibleOpportunities"></span><span id="publishedOpportunities"></span><span id="runningJobs"></span><span id="completedJobs"></span><span id="failedJobs"></span><span id="retryCount"></span><span id="queueDepth"></span><span id="processingTime"></span><span id="completedPublishers"></span><span id="failedPublishers"></span><span id="manualReviewCount"></span><span id="totalRuntime"></span><span id="publisherSuccessRate"></span><span id="acquisitionHealth"></span><span id="currentProvider"></span><span id="runStarted"></span><span id="runCompleted"></span><div id="historyBody"></div><div id="failureLog"></div><div id="publisherStatusList"></div><div id="executiveBrief"></div><button id="briefButton"></button><button id="resumePublisherButton"></button><section id="manualInterventionPanel"></section></div>
+</main>
+<footer><span>APROPOS GROUP LLC</span><span>Procurement Intelligence Operations Center</span></footer>
+</div>
+<script src="assets/runtime-config.js"></script>
+<script src="assets/command-center.js" defer></script>
 </body>
 </html>
