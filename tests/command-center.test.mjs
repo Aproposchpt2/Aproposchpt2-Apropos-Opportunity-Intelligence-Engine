@@ -4,56 +4,50 @@ import { readFile } from 'node:fs/promises';
 
 const text = async path => readFile(new URL(`../${path}`, import.meta.url), 'utf8');
 
-test('root index is the operational dashboard', async () => {
+test('root index is the procurement intelligence operations center', async () => {
   const html = await text('index.html');
-  assert.match(html, /BEGIN DAILY OPERATIONS/);
-  assert.match(html, /AGENT STATUS/);
-  assert.match(html, /Daily Executive Intelligence Brief/);
+  for (const label of ['Procurement Intelligence Operations Center','MISSION READINESS','EXECUTIVE BRIEFING','EXECUTIVE DECISION CENTER','PUBLISHER EXPLORER',"TODAY'S MISSION",'LIVE MISSION TIMELINE','COMPLETED MISSIONS','EXECUTIVE ALERTS','SYSTEM INTELLIGENCE','BEGIN DAILY OPERATIONS','AGENT STATUS']) assert.match(html,new RegExp(label,'i'));
 });
 
-test('acquisition configuration preserves dashboard and exposes required controls', async () => {
+test('mission control exposes provider-independent publisher operations', async () => {
   const html = await text('index.html');
-  for (const label of ['ACQUISITION CONFIGURATION','Acquisition Intelligence Provider','Select Publisher','Completed Publisher Runs','LIVE ACQUISITION FEED','Publisher Batch Status','MANUAL INTERVENTION REQUIRED']) {
-    assert.match(html, new RegExp(label,'i'));
-  }
-  for (const provider of ['OpenAI','Anthropic','Manual Acquisition']) assert.match(html, new RegExp(provider));
-  assert.match(html, /id="agentGrid"/);
-  assert.match(html, /id="executiveBrief"/);
+  for (const provider of ['OpenAI','Anthropic','Manual Acquisition']) assert.match(html,new RegExp(provider));
+  for (const id of ['publisherExplorer','intelligencePublisherName','publisherQueue','missionReadinessValue','executiveBrief','completedPublisherRuns','acquisitionFeed','manualInterventionPanel']) assert.match(html,new RegExp(`id="${id}"`));
 });
 
-test('publisher orchestration is provider-independent and enforces five publisher maximum', async () => {
+test('publisher orchestration enforces five-publisher maximum and stage resume', async () => {
   const js = await text('assets/command-center.js');
-  assert.match(js, /maxPublishers:\s*5/);
-  assert.match(js, /state\.publishers\.includes\(id\)/);
-  assert.match(js, /provider:state\.provider/);
-  assert.match(js, /publisher_ids:state\.publishers/);
-  assert.match(js, /resume_scope:'publisher'/);
-  assert.doesNotMatch(js, /if\s*\(.*anthropic.*\).*write/i);
+  assert.match(js,/maxPublishers:5/);
+  assert.match(js,/state\.publishers\.includes\(id\)/);
+  assert.match(js,/provider:state\.provider/);
+  assert.match(js,/publisher_ids:state\.publishers/);
+  assert.match(js,/resume_scope:'publisher'/);
+  assert.doesNotMatch(js,/if\s*\(.*anthropic.*\).*write/i);
 });
 
-test('dashboard invokes required command functions', async () => {
+test('operations center invokes required command functions', async () => {
   const js = await text('assets/command-center.js');
-  for (const name of ['command-begin-daily-operations','command-status','command-resume','command-executive-brief']) assert.match(js, new RegExp(name));
+  for (const name of ['command-begin-daily-operations','command-status','command-resume','command-executive-brief']) assert.match(js,new RegExp(name));
 });
 
 test('migration creates seven RLS tables', async () => {
   const sql = await text('supabase/migrations/20260723230000_command_center.sql');
   for (const table of ['command_runs','command_jobs','command_events','command_failures','command_metrics','daily_executive_briefs','system_status']) {
-    assert.match(sql, new RegExp(`create table if not exists public\\.${table}`));
-    assert.match(sql, new RegExp(`alter table public\\.${table} enable row level security`));
+    assert.match(sql,new RegExp(`create table if not exists public\\.${table}`));
+    assert.match(sql,new RegExp(`alter table public\\.${table} enable row level security`));
   }
 });
 
 test('orchestrator owns sequential five-agent progression', async () => {
   const shared = await text('supabase/functions/_shared/command.ts');
   const orchestrator = await text('supabase/functions/command-begin-daily-operations/index.ts');
-  assert.equal((shared.match(/functionName:/g) || []).length, 5);
-  assert.match(orchestrator, /for \(const agent of AGENT_SEQUENCE\)/);
-  assert.match(orchestrator, /max_attempts/);
-  assert.match(orchestrator, /idempotencyKey/);
+  assert.equal((shared.match(/functionName:/g)||[]).length,5);
+  assert.match(orchestrator,/for \(const agent of AGENT_SEQUENCE\)/);
+  assert.match(orchestrator,/max_attempts/);
+  assert.match(orchestrator,/idempotencyKey/);
 });
 
-test('browser assets contain no service role secret', async () => {
-  const files = [await text('index.html'),await text('assets/command-center.js'),await text('assets/command-center.css')].join('\n');
-  assert.doesNotMatch(files, /service_role|SUPABASE_SERVICE_ROLE_KEY/i);
+test('browser assets contain no server secrets', async () => {
+  const files=[await text('index.html'),await text('assets/command-center.js'),await text('assets/command-center.css')].join('\n');
+  assert.doesNotMatch(files,/service_role|SUPABASE_SERVICE_ROLE_KEY|OPENAI_API_KEY|ANTHROPIC_API_KEY/i);
 });
