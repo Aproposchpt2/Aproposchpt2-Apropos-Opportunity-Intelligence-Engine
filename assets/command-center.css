@@ -70,7 +70,7 @@ dt { color:var(--muted); font-size:.72rem; text-transform:uppercase; letter-spac
 .progress-text { color:var(--muted); font-size:.8rem; }
 .agent-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; }
 .agent-card { border:1px solid rgba(255,255,255,.07); background:rgba(255,255,255,.025); border-radius:13px; padding:15px; min-height:160px; display:flex; flex-direction:column; justify-content:space-between; }
-.agent-card .number { color:var(--gold); font-size:.7rem; letter-spacing:.12em; }.agent-card h3 { margin:7px 0; font-size:.95rem; }.agent-card p { color:var(--muted); font-size:.78rem; line-height:1.45; }.agent-state { font-size:.72rem; font-weight:800; text-transform:uppercase; color:var(--muted); }
+.agent-card .number { color:var(--gold); font-size:.7rem; letter-spacing:.12em; }.agent-card h3 { margin:7px 0; font-size:.95rem; font-family:'Bodoni Moda', Georgia, serif; font-weight:500; letter-spacing:-.02em; }.agent-card p { color:var(--muted); font-size:.78rem; line-height:1.45; }.agent-state { font-size:.72rem; font-weight:800; text-transform:uppercase; color:var(--muted); }
 .agent-card.running { border-color:rgba(138,183,255,.45); }.agent-card.completed { border-color:rgba(114,215,168,.45); }.agent-card.failed { border-color:rgba(255,139,139,.5); }
 .publisher-status-list,.acquisition-feed,.completed-runs { display:grid; gap:10px; max-height:430px; overflow:auto; padding-right:5px; }
 .publisher-status-item,.feed-item,.completed-run { border:1px solid rgba(255,255,255,.07); background:rgba(255,255,255,.025); border-radius:12px; padding:13px; }
