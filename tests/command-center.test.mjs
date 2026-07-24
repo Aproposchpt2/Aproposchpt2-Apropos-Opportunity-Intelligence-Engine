@@ -11,6 +11,26 @@ test('root index is the operational dashboard', async () => {
   assert.match(html, /Daily Executive Intelligence Brief/);
 });
 
+test('acquisition configuration preserves dashboard and exposes required controls', async () => {
+  const html = await text('index.html');
+  for (const label of ['ACQUISITION CONFIGURATION','Acquisition Intelligence Provider','Select Publisher','Completed Publisher Runs','LIVE ACQUISITION FEED','Publisher Batch Status','MANUAL INTERVENTION REQUIRED']) {
+    assert.match(html, new RegExp(label,'i'));
+  }
+  for (const provider of ['OpenAI','Anthropic','Manual Acquisition']) assert.match(html, new RegExp(provider));
+  assert.match(html, /id="agentGrid"/);
+  assert.match(html, /id="executiveBrief"/);
+});
+
+test('publisher orchestration is provider-independent and enforces five publisher maximum', async () => {
+  const js = await text('assets/command-center.js');
+  assert.match(js, /maxPublishers:\s*5/);
+  assert.match(js, /state\.publishers\.includes\(id\)/);
+  assert.match(js, /provider:state\.provider/);
+  assert.match(js, /publisher_ids:state\.publishers/);
+  assert.match(js, /resume_scope:'publisher'/);
+  assert.doesNotMatch(js, /if\s*\(.*anthropic.*\).*write/i);
+});
+
 test('dashboard invokes required command functions', async () => {
   const js = await text('assets/command-center.js');
   for (const name of ['command-begin-daily-operations','command-status','command-resume','command-executive-brief']) assert.match(js, new RegExp(name));
@@ -34,6 +54,6 @@ test('orchestrator owns sequential five-agent progression', async () => {
 });
 
 test('browser assets contain no service role secret', async () => {
-  const files = [await text('index.html'), await text('assets/command-center.js'), await text('assets/command-center.css')].join('\n');
+  const files = [await text('index.html'),await text('assets/command-center.js'),await text('assets/command-center.css')].join('\n');
   assert.doesNotMatch(files, /service_role|SUPABASE_SERVICE_ROLE_KEY/i);
 });
