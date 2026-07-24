@@ -10,15 +10,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Validate root dashboard
+      - name: Validate operations center
         run: |
           test -f index.html
           test -f assets/command-center.css
           test -f assets/command-center.js
+          test -f assets/runtime-config.js
           grep -q "BEGIN DAILY OPERATIONS" index.html
-          grep -q "Daily Executive Intelligence Brief" index.html
-      - name: Validate dashboard JavaScript
+          grep -q "Procurement Intelligence Operations Center" index.html
+          grep -q "MISSION READINESS" index.html
+          grep -q "EXECUTIVE DECISION CENTER" index.html
+          grep -q "LIVE MISSION TIMELINE" index.html
+      - name: Validate browser JavaScript
         run: node --check assets/command-center.js
+      - name: Run acceptance tests
+        run: node --test tests/*.test.mjs
       - name: Validate operational schema
         run: |
           for table in command_runs command_jobs command_events command_failures command_metrics daily_executive_briefs system_status; do
@@ -33,4 +39,4 @@ jobs:
           grep -q "idempotencyKey" supabase/functions/command-begin-daily-operations/index.ts
       - name: Validate browser credential boundary
         run: |
-          ! grep -Eiq "service_role|SUPABASE_SERVICE_ROLE_KEY" index.html assets/command-center.js assets/command-center.css
+          ! grep -Eiq "service_role|SUPABASE_SERVICE_ROLE_KEY|OPENAI_API_KEY|ANTHROPIC_API_KEY" index.html assets/command-center.js assets/command-center.css
