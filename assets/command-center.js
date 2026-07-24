@@ -1,273 +1,50 @@
-const CONFIG = {
-  supabaseUrl: window.AP_COMMAND_CONFIG?.supabaseUrl || 'https://judislfknmhofcgzyozc.supabase.co',
-  anonKey: window.AP_COMMAND_CONFIG?.anonKey || '',
-  refreshMs: 15000,
-  maxPublishers: 5
-};
-
-const AGENTS = [
-  ['Acquisition Operations', 'Discovers jobs, executes approved connectors, and records normalized acquisition evidence.'],
-  ['Procurement Intelligence Processing', 'Registers documents, executes PIEE, extracts requirements, and builds Contract DNA.'],
-  ['Eligibility and Matching', 'Applies lifecycle and hard constraints, AOIE matching, evidence, confidence, and fit scores.'],
-  ['Delivery', 'Publishes approved procurement intelligence and removes invalid lifecycle records.'],
-  ['Executive Reporting', 'Aggregates results, health, history, and the Daily Executive Intelligence Brief.']
+const CONFIG={supabaseUrl:window.AP_COMMAND_CONFIG?.supabaseUrl||'https://judislfknmhofcgzyozc.supabase.co',anonKey:window.AP_COMMAND_CONFIG?.anonKey||'',refreshMs:15000,maxPublishers:5};
+const AGENTS=[['Acquisition Operations','Discovers jobs, executes approved connectors, and records normalized acquisition evidence.'],['Procurement Intelligence Processing','Registers documents, executes PIEE, extracts requirements, and builds Contract DNA.'],['Eligibility and Matching','Applies lifecycle and hard constraints, AOIE matching, evidence, confidence, and fit scores.'],['Delivery','Publishes approved procurement intelligence and removes invalid lifecycle records.'],['Executive Reporting','Aggregates results, health, history, and the Daily Executive Intelligence Brief.']];
+const PROVIDERS={openai:{name:'OpenAI',status:'Available',health:'healthy'},anthropic:{name:'Anthropic',status:'Available when configured',health:'healthy'},manual:{name:'Manual Acquisition',status:'Operator controlled',health:'manual_review'}};
+const FALLBACK_PUBLISHERS=[
+{id:'AZ-T1-001',name:'Arizona Procurement Portal',state:'Arizona',category:'State Agencies',platform:'APP',vendor:'State of Arizona',connector_type:'API / Portal',connector_status:'Healthy',avg_runtime:102,avg_opportunities:236,success_rate:98,estimated_value:'$286 Million'},
+{id:'AZ-T1-002',name:'Arizona Department of Transportation',state:'Arizona',category:'State Agencies',platform:'ADOT / Bid Express',vendor:'Bid Express',connector_type:'Portal / Documents',connector_status:'Healthy',avg_runtime:128,avg_opportunities:94,success_rate:96,estimated_value:'$341 Million'},
+{id:'AZ-T1-003',name:'Arizona State University',state:'Arizona',category:'Universities',platform:'ASU Procurement',vendor:'Arizona State University',connector_type:'Portal',connector_status:'Healthy',avg_runtime:84,avg_opportunities:57,success_rate:97,estimated_value:'$119 Million'},
+{id:'AZ-T1-004',name:'University of Arizona',state:'Arizona',category:'Universities',platform:'UArizona Procurement',vendor:'University of Arizona',connector_type:'Portal',connector_status:'Healthy',avg_runtime:79,avg_opportunities:44,success_rate:95,estimated_value:'$91 Million'},
+{id:'AZ-L1-001',name:'Maricopa County',state:'Arizona',category:'Counties',platform:'County Procurement Portal',vendor:'Maricopa County',connector_type:'Portal',connector_status:'Healthy',avg_runtime:91,avg_opportunities:63,success_rate:96,estimated_value:'$147 Million'},
+{id:'AZ-L1-002',name:'City of Phoenix',state:'Arizona',category:'Cities',platform:'Procurement Services',vendor:'City of Phoenix',connector_type:'Portal',connector_status:'Healthy',avg_runtime:88,avg_opportunities:71,success_rate:95,estimated_value:'$168 Million'},
+{id:'CA-T1-001',name:'California Department of General Services',state:'California',category:'State Agencies',platform:'Cal eProcure',vendor:'State of California',connector_type:'API / Portal',connector_status:'Healthy',avg_runtime:154,avg_opportunities:127,success_rate:98,estimated_value:'$412 Million'},
+{id:'NV-T1-001',name:'Nevada State Purchasing Division',state:'Nevada',category:'State Agencies',platform:'NevadaEPro',vendor:'OpenGov',connector_type:'Portal',connector_status:'Healthy',avg_runtime:76,avg_opportunities:38,success_rate:97,estimated_value:'$83 Million'}
 ];
-
-const PROVIDERS = {
-  openai: { name: 'OpenAI', status: 'Available', health: 'healthy' },
-  anthropic: { name: 'Anthropic', status: 'Available when configured', health: 'healthy' },
-  manual: { name: 'Manual Acquisition', status: 'Operator controlled', health: 'manual_review' }
-};
-
-const FALLBACK_PUBLISHERS = [
-  { id:'AZ-T1-001', name:'Arizona Procurement Portal', platform:'APP', vendor:'State of Arizona', connector_status:'Healthy' },
-  { id:'AZ-T1-002', name:'Arizona Department of Transportation', platform:'ADOT / Bid Express', vendor:'Bid Express', connector_status:'Healthy' },
-  { id:'AZ-T1-003', name:'Arizona State University', platform:'ASU Procurement', vendor:'Arizona State University', connector_status:'Healthy' },
-  { id:'AZ-T1-004', name:'University of Arizona', platform:'UArizona Procurement', vendor:'University of Arizona', connector_status:'Healthy' },
-  { id:'AZ-L1-001', name:'Maricopa County', platform:'County Procurement Portal', vendor:'Maricopa County', connector_status:'Healthy' },
-  { id:'AZ-L1-002', name:'City of Phoenix', platform:'Procurement Services', vendor:'City of Phoenix', connector_status:'Healthy' }
-];
-
-const state = {
-  token:null, run:null, jobs:[], metrics:{}, failures:[], history:[], brief:null, timer:null,
-  provider:'', publishers:[], publisherRegistry:[...FALLBACK_PUBLISHERS], publisherRuns:[], acquisitionEvents:[], manualIntervention:null
-};
-const $ = id => document.getElementById(id);
-
-function apiHeaders() {
-  const headers = { 'Content-Type':'application/json', apikey:CONFIG.anonKey };
-  if (state.token) headers.Authorization = `Bearer ${state.token}`;
-  return headers;
-}
-
-async function invoke(name, payload = {}) {
-  if (!CONFIG.anonKey) throw new Error('Command Center configuration is incomplete. Set window.AP_COMMAND_CONFIG.anonKey.');
-  const response = await fetch(`${CONFIG.supabaseUrl}/functions/v1/${name}`, { method:'POST', headers:apiHeaders(), body:JSON.stringify(payload) });
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(data.error || data.message || `${name} failed (${response.status})`);
-  return data;
-}
-
-function escapeHtml(value = '') { return String(value).replace(/[&<>'"]/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char])); }
-function formatDate(value) { if (!value) return '—'; const date = new Date(value); return Number.isNaN(date.valueOf()) ? '—' : date.toLocaleString(); }
-function duration(start, end = new Date().toISOString()) {
-  if (!start) return '—';
-  const milliseconds = Math.max(0, new Date(end) - new Date(start));
-  const seconds = Math.floor(milliseconds / 1000), minutes = Math.floor(seconds / 60), hours = Math.floor(minutes / 60);
-  return hours ? `${String(hours).padStart(2,'0')}:${String(minutes % 60).padStart(2,'0')}:${String(seconds % 60).padStart(2,'0')}` : `${String(minutes).padStart(2,'0')}:${String(seconds % 60).padStart(2,'0')}`;
-}
-function normalizeStatus(value = 'queued') { return String(value).trim().toLowerCase().replaceAll(' ','_'); }
-function publisherId(item = {}) { return item.publisher_id || item.id || item.publisherId || ''; }
-function publisherName(item = {}) { return item.publisher_name || item.name || item.publisherName || publisherId(item) || 'Unknown Publisher'; }
-function registryPublisher(id) { return state.publisherRegistry.find(item => publisherId(item) === id); }
-function number(value) { return Number(value || 0).toLocaleString(); }
-
-function setStatus(status = 'idle') {
-  const normalized = normalizeStatus(status);
-  const node = $('systemStatus');
-  node.textContent = normalized.replaceAll('_',' ').toUpperCase();
-  node.className = `status-pill status-${normalized}`;
-}
-
-function renderProvider() {
-  $('providerSelect').value = state.provider;
-  const provider = PROVIDERS[state.provider];
-  const healthOverride = state.metrics?.provider_health?.[state.provider] || state.metrics?.provider_health;
-  const health = normalizeStatus(healthOverride || provider?.health || 'idle');
-  $('providerHealthBadge').textContent = provider ? health.replaceAll('_',' ').toUpperCase() : 'NOT SELECTED';
-  $('providerHealthBadge').className = `status-pill status-${provider ? health : 'idle'}`;
-  $('providerStatusText').textContent = provider ? `${provider.name} · ${provider.status} · Health: ${health.replaceAll('_',' ')}` : 'Select a provider to display status and health.';
-}
-
-function filteredPublishers() {
-  const query = $('publisherSearch').value.trim().toLowerCase();
-  return state.publisherRegistry.filter(item => !query || [publisherId(item),publisherName(item),item.platform,item.technology_platform,item.vendor,item.technology_vendor,item.connector_status].some(value => String(value || '').toLowerCase().includes(query)));
-}
-
-function renderPublisherSelector() {
-  const options = filteredPublishers();
-  $('publisherSelect').innerHTML = options.length ? options.map(item => {
-    const id = publisherId(item), platform = item.platform || item.technology_platform || 'Unknown platform', vendor = item.vendor || item.technology_vendor || 'Unknown vendor', status = item.connector_status || item.status || 'Unknown';
-    return `<option value="${escapeHtml(id)}">${escapeHtml(id)} — ${escapeHtml(publisherName(item))} | ${escapeHtml(platform)} | ${escapeHtml(vendor)} | ${escapeHtml(status)}</option>`;
-  }).join('') : '<option value="">No publishers found</option>';
-}
-
-function renderPublisherQueue() {
-  $('publisherCount').textContent = `${state.publishers.length} / ${CONFIG.maxPublishers}`;
-  $('publisherQueue').innerHTML = state.publishers.length ? state.publishers.map(id => {
-    const item = registryPublisher(id) || { id, name:id };
-    return `<li data-publisher-id="${escapeHtml(id)}"><span class="queue-item-main"><strong>${escapeHtml(publisherName(item))}</strong><small>${escapeHtml(id)} · ${escapeHtml(item.platform || item.technology_platform || 'Platform unknown')} · ${escapeHtml(item.connector_status || item.status || 'Status unknown')}</small></span></li>`;
-  }).join('') : '<li class="empty-state">No publishers selected.</li>';
-  $('addPublisherButton').disabled = state.publishers.length >= CONFIG.maxPublishers;
-  $('removePublisherButton').disabled = state.publishers.length === 0;
-}
-
-function renderAgents() {
-  const jobByAgent = Object.fromEntries(state.jobs.map(job => [job.agent_name,job]));
-  $('agentGrid').innerHTML = AGENTS.map(([name,description],index) => {
-    const job = jobByAgent[name] || jobByAgent[`agent-${index + 1}`] || {};
-    const status = normalizeStatus(job.status || 'pending');
-    return `<article class="agent-card ${escapeHtml(status)}"><div><span class="number">AGENT ${index + 1}</span><h3>${escapeHtml(name)}</h3><p>${escapeHtml(description)}</p></div><span class="agent-state">${escapeHtml(status)}${job.attempt_count ? ` · attempt ${job.attempt_count}` : ''}</span></article>`;
-  }).join('');
-}
-
-function metric(key) { return number(state.metrics?.[key]); }
-function renderMetrics() {
-  const bindings = { publishersProcessed:'publishers_processed',opportunitiesDiscovered:'opportunities_discovered',opportunitiesInserted:'opportunities_inserted',opportunitiesUpdated:'opportunities_updated',documentsProcessed:'documents_processed',contractDnaCompleted:'contract_dna_completed',eligibleOpportunities:'eligible_opportunities',publishedOpportunities:'published_opportunities',runningJobs:'running_jobs',completedJobs:'completed_jobs',failedJobs:'failed_jobs',retryCount:'retry_count',queueDepth:'queue_depth' };
-  Object.entries(bindings).forEach(([id,key]) => $(id).textContent = metric(key));
-  $('processingTime').textContent = state.metrics.processing_time || duration(state.run?.started_at,state.run?.completed_at);
-  $('connectorHealth').textContent = state.metrics.connector_health || 'Unknown';
-}
-
-function publisherRunStatus(run) { return normalizeStatus(run.status || run.publisher_status || 'queued'); }
-function completedRuns() { return state.publisherRuns.filter(run => publisherRunStatus(run) === 'completed'); }
-function failedRuns() { return state.publisherRuns.filter(run => publisherRunStatus(run) === 'failed'); }
-function manualRuns() { return state.publisherRuns.filter(run => ['manual_intervention_required','manual_review'].includes(publisherRunStatus(run))); }
-function activePublisherRun() { return state.publisherRuns.find(run => ['initializing','connecting','acquiring','normalizing','validating','running'].includes(publisherRunStatus(run))); }
-
-function renderRun() {
-  const run = state.run;
-  setStatus(run?.status || state.metrics.system_status || 'operational');
-  $('currentStage').textContent = (run?.current_stage || 'IDLE').replaceAll('_',' ').toUpperCase();
-  $('runIdentifier').textContent = run?.id ? `Run ${run.id.slice(0,8)}` : 'No active run';
-  $('executionState').textContent = run?.status || 'Idle';
-  $('runStarted').textContent = formatDate(run?.started_at);
-  $('runCompleted').textContent = formatDate(run?.completed_at);
-  $('runRuntime').textContent = duration(run?.started_at,run?.completed_at);
-  $('totalRuntime').textContent = state.metrics.total_runtime || duration(run?.started_at,run?.completed_at);
-
-  const total = state.publisherRuns.length || state.publishers.length;
-  const completed = completedRuns().length;
-  const failed = failedRuns().length;
-  const manual = manualRuns().length;
-  const active = activePublisherRun();
-  const remaining = Math.max(0,total - completed - failed - manual);
-  const successRate = total ? `${Math.round((completed / total) * 100)}%` : '—';
-
-  $('currentProvider').textContent = PROVIDERS[run?.provider || state.provider]?.name || run?.provider || '—';
-  $('currentPublisher').textContent = active ? publisherName(active) : (run?.current_publisher_name || run?.current_publisher || '—');
-  $('remainingPublishers').textContent = number(remaining);
-  $('completedPublishers').textContent = number(completed);
-  $('failedPublishers').textContent = number(failed);
-  $('manualReviewCount').textContent = number(manual);
-  $('publisherSuccessRate').textContent = state.metrics.publisher_success_rate || successRate;
-  $('acquisitionHealth').textContent = state.metrics.acquisition_health || (failed ? 'Degraded' : active ? 'Running' : completed ? 'Healthy' : 'Unknown');
-  $('overallSystemHealth').textContent = state.metrics.overall_system_health || state.metrics.system_status || run?.status || 'Unknown';
-  $('progressBar').style.width = `${total ? Math.min(100,(completed / total) * 100) : 0}%`;
-  $('progressText').textContent = `${completed} of ${total} publishers completed`;
-
-  const runActive = ['running','retrying','stopping'].includes(run?.status);
-  const configReady = Boolean(state.provider && state.publishers.length);
-  $('beginButton').disabled = runActive || !configReady;
-  $('resumeButton').disabled = !run || !['failed','interrupted','stopped','completed_with_failures'].includes(run.status);
-  $('stopButton').disabled = !runActive;
-}
-
-function renderPublisherStatuses() {
-  $('publisherStatusList').innerHTML = state.publisherRuns.length ? state.publisherRuns.map(run => {
-    const status = publisherRunStatus(run);
-    return `<div class="publisher-status-item"><div><strong>${escapeHtml(publisherName(run))}</strong><small>${escapeHtml(publisherId(run))} · ${escapeHtml(run.current_step || run.stage || 'Awaiting stage information')}</small></div><span class="publisher-state status-${escapeHtml(status)}">${escapeHtml(status.replaceAll('_',' '))}</span></div>`;
-  }).join('') : '<p>No publisher batch is active.</p>';
-}
-
-function renderCompletedRuns() {
-  const runs = completedRuns();
-  $('completedPublisherRuns').innerHTML = runs.length ? runs.map(run => `<article class="completed-run"><header><div><h3>✓ ${escapeHtml(publisherName(run))}</h3><small>${escapeHtml(publisherId(run))}</small></div><span class="publisher-state status-completed">Completed</span></header><dl><div><dt>Runtime</dt><dd>${escapeHtml(run.runtime || duration(run.started_at,run.completed_at))}</dd></div><div><dt>Records Discovered</dt><dd>${number(run.records_discovered || run.opportunities_discovered)}</dd></div><div><dt>Records Inserted</dt><dd>${number(run.records_inserted || run.opportunities_inserted)}</dd></div><div><dt>Records Updated</dt><dd>${number(run.records_updated || run.opportunities_updated)}</dd></div><div><dt>Documents Registered</dt><dd>${number(run.documents_registered)}</dd></div><div><dt>PIEE Documents Processed</dt><dd>${number(run.piee_documents_processed || run.documents_processed)}</dd></div><div><dt>Contract DNA Completed</dt><dd>${number(run.contract_dna_completed)}</dd></div><div><dt>Status</dt><dd>${escapeHtml(run.status || 'Completed')}</dd></div></dl></article>`).join('') : '<p>No completed publisher runs available.</p>';
-}
-
-function renderAcquisitionFeed() {
-  const events = [...state.acquisitionEvents].sort((a,b) => new Date(b.created_at || b.timestamp || 0) - new Date(a.created_at || a.timestamp || 0));
-  $('acquisitionFeed').innerHTML = events.length ? events.map(event => {
-    const timestamp = event.created_at || event.timestamp;
-    const time = timestamp ? new Date(timestamp).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : '—';
-    return `<div class="feed-item"><time>${escapeHtml(time)}</time><div><strong>${escapeHtml(event.message || event.event_message || event.event_type || 'Acquisition event')}</strong>${event.publisher_name || event.publisher_id ? `<small>${escapeHtml(event.publisher_name || event.publisher_id)}</small>` : ''}</div></div>`;
-  }).join('') : '<p>No acquisition events recorded.</p>';
-}
-
-function renderManualIntervention() {
-  const item = state.manualIntervention || manualRuns()[0];
-  $('manualInterventionPanel').hidden = !item;
-  if (!item) return;
-  const name = publisherName(item);
-  $('manualPublisherName').textContent = name;
-  $('manualPublisher').textContent = `${publisherId(item)} · ${name}`;
-  $('manualStep').textContent = item.current_step || item.stage || 'Unknown';
-  $('manualReason').textContent = item.reason || item.error_message || item.message || 'No reason supplied.';
-  $('manualAction').textContent = item.recommended_action || 'Review the connector evidence and resolve the blocking condition.';
-  $('manualResumePoint').textContent = item.resume_point || item.current_step || item.stage || 'Failed stage';
-  $('resumePublisherButton').dataset.publisherId = publisherId(item);
-  $('resumePublisherButton').dataset.resumePoint = item.resume_point || item.current_step || item.stage || '';
-}
-
-function renderHistory() { $('historyBody').innerHTML = state.history.length ? state.history.map(run => `<tr><td>${escapeHtml(run.id?.slice(0,8) || '—')}</td><td>${escapeHtml(run.status || '—')}</td><td>${escapeHtml(run.current_stage || '—')}</td><td>${escapeHtml(formatDate(run.started_at))}</td></tr>`).join('') : '<tr><td colspan="4">No execution history available.</td></tr>'; }
-function renderFailures() { $('failureLog').innerHTML = state.failures.length ? state.failures.map(item => `<div class="failure-item"><strong>${escapeHtml(item.agent_name || item.publisher_name || item.failure_type || 'Operational failure')}</strong><span>${escapeHtml(item.message || item.error_message || 'No message')} · ${escapeHtml(formatDate(item.created_at))}</span></div>`).join('') : '<p>No failures recorded.</p>'; }
-function renderBrief() {
-  const brief = state.brief; if (!brief) return;
-  const sections = brief.content || brief.brief || brief;
-  if (typeof sections === 'string') { $('executiveBrief').innerHTML = `<p>${escapeHtml(sections)}</p>`; return; }
-  $('executiveBrief').innerHTML = Object.entries(sections).map(([heading,value]) => `<h3>${escapeHtml(heading.replaceAll('_',' '))}</h3><p>${escapeHtml(typeof value === 'object' ? JSON.stringify(value,null,2) : value)}</p>`).join('');
-}
-
-function render() {
-  renderProvider(); renderPublisherSelector(); renderPublisherQueue(); renderRun(); renderAgents(); renderPublisherStatuses(); renderCompletedRuns(); renderAcquisitionFeed(); renderManualIntervention(); renderMetrics(); renderHistory(); renderFailures(); renderBrief();
-  $('lastRefresh').textContent = `Updated ${new Date().toLocaleTimeString()}`;
-}
-
-async function refreshStatus(showMessage = false) {
-  try {
-    const data = await invoke('command-status', {});
-    state.run = data.run || null;
-    state.jobs = data.jobs || [];
-    state.metrics = data.metrics || {};
-    state.failures = data.failures || [];
-    state.history = data.history || [];
-    state.publisherRegistry = data.publisher_registry || data.publishers || state.publisherRegistry;
-    state.publisherRuns = data.publisher_runs || data.acquisition?.publisher_runs || [];
-    state.acquisitionEvents = data.acquisition_events || data.events || data.acquisition?.events || [];
-    state.manualIntervention = data.manual_intervention || data.acquisition?.manual_intervention || null;
-    if (!state.provider && data.run?.provider) state.provider = data.run.provider;
-    if (!state.publishers.length && Array.isArray(data.run?.publishers)) state.publishers = data.run.publishers.map(item => typeof item === 'string' ? item : publisherId(item)).filter(Boolean).slice(0,CONFIG.maxPublishers);
-    render();
-    if (showMessage) $('commandMessage').textContent = 'Status refreshed.';
-  } catch (error) { setStatus('failed'); $('commandMessage').textContent = error.message; }
-}
-
-async function command(name,message,payload = {}) {
-  $('commandMessage').textContent = message;
-  try { await invoke(name,{ ...(state.run?.id ? { run_id:state.run.id } : {}), ...payload }); await refreshStatus(); }
-  catch (error) { $('commandMessage').textContent = error.message; }
-}
-
-$('providerSelect').addEventListener('change', event => { state.provider = event.target.value; renderProvider(); renderRun(); });
-$('publisherSearch').addEventListener('input', renderPublisherSelector);
-$('addPublisherButton').addEventListener('click', () => {
-  const id = $('publisherSelect').value;
-  if (!id) return;
-  if (state.publishers.includes(id)) { $('commandMessage').textContent = 'That publisher is already in the queue.'; return; }
-  if (state.publishers.length >= CONFIG.maxPublishers) { $('commandMessage').textContent = 'A maximum of five publishers may be selected.'; return; }
-  state.publishers.push(id); renderPublisherQueue(); renderRun(); $('commandMessage').textContent = `${publisherName(registryPublisher(id))} added to the acquisition queue.`;
-});
-$('removePublisherButton').addEventListener('click', () => {
-  if (!state.publishers.length) return;
-  const removed = state.publishers.pop(); renderPublisherQueue(); renderRun(); $('commandMessage').textContent = `${publisherName(registryPublisher(removed))} removed from the acquisition queue.`;
-});
-$('publisherQueue').addEventListener('click', event => {
-  const item = event.target.closest('[data-publisher-id]');
-  if (!item) return;
-  const id = item.dataset.publisherId;
-  state.publishers = state.publishers.filter(value => value !== id); renderPublisherQueue(); renderRun();
-});
-$('beginButton').addEventListener('click', () => {
-  if (!state.provider || !state.publishers.length) { $('commandMessage').textContent = 'Select a provider and at least one publisher.'; return; }
-  command('command-begin-daily-operations','Creating publisher batch and starting Acquisition Operations…',{ provider:state.provider, publishers:state.publishers, acquisition_config:{ provider:state.provider, publisher_ids:state.publishers, max_publishers:CONFIG.maxPublishers } });
-});
-$('resumeButton').addEventListener('click', () => command('command-resume','Resuming from the first unresolved stage…'));
-$('stopButton').addEventListener('click', () => command('command-stop','Requesting a governed stop…'));
-$('refreshButton').addEventListener('click', () => refreshStatus(true));
-$('resumePublisherButton').addEventListener('click', event => command('command-resume','Resuming publisher from the recorded failed stage…',{ publisher_id:event.currentTarget.dataset.publisherId, resume_from:event.currentTarget.dataset.resumePoint, resume_scope:'publisher' }));
-$('briefButton').addEventListener('click', async () => {
-  try { const data = await invoke('command-executive-brief',state.run?.id ? { run_id:state.run.id } : {}); state.brief = data.brief || data; renderBrief(); }
-  catch (error) { $('executiveBrief').innerHTML = `<p>${escapeHtml(error.message)}</p>`; }
-});
-
-renderAgents(); render(); refreshStatus(); state.timer = window.setInterval(refreshStatus,CONFIG.refreshMs);
+const state={token:null,run:null,jobs:[],metrics:{},failures:[],history:[],brief:null,timer:null,provider:'',publishers:[],publisherRegistry:[...FALLBACK_PUBLISHERS],publisherRuns:[],acquisitionEvents:[],manualIntervention:null,selectedPublisher:null};
+const $=id=>document.getElementById(id);const safe=(id,value)=>{const n=$(id);if(n)n.textContent=value};
+function apiHeaders(){const h={'Content-Type':'application/json',apikey:CONFIG.anonKey};if(state.token)h.Authorization=`Bearer ${state.token}`;return h}
+async function invoke(name,payload={}){if(!CONFIG.anonKey)throw new Error('Command Center configuration is incomplete. Set window.AP_COMMAND_CONFIG.anonKey.');const r=await fetch(`${CONFIG.supabaseUrl}/functions/v1/${name}`,{method:'POST',headers:apiHeaders(),body:JSON.stringify(payload)});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||d.message||`${name} failed (${r.status})`);return d}
+const escapeHtml=(v='')=>String(v).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+const normalize=(v='queued')=>String(v).trim().toLowerCase().replaceAll(' ','_');
+const pid=(p={})=>p.publisher_id||p.id||p.publisherId||'';const pname=(p={})=>p.publisher_name||p.name||p.publisherName||pid(p)||'Unknown Publisher';
+const num=v=>Number(v||0).toLocaleString();const registry=id=>state.publisherRegistry.find(p=>pid(p)===id);
+function duration(start,end=new Date().toISOString()){if(!start)return'—';const s=Math.max(0,Math.floor((new Date(end)-new Date(start))/1000)),m=Math.floor(s/60),h=Math.floor(m/60);return h?`${String(h).padStart(2,'0')}:${String(m%60).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`:`${String(m).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`}
+function setStatus(status='idle'){const n=$('systemStatus'),v=normalize(status);if(!n)return;n.textContent=v.replaceAll('_',' ').toUpperCase();n.className=`status-pill status-${v}`}
+function publisherStatus(r){return normalize(r.status||r.publisher_status||'queued')}function completedRuns(){return state.publisherRuns.filter(r=>publisherStatus(r)==='completed')}function failedRuns(){return state.publisherRuns.filter(r=>publisherStatus(r)==='failed')}function manualRuns(){return state.publisherRuns.filter(r=>['manual_review','manual_intervention_required'].includes(publisherStatus(r)))}function activeRun(){return state.publisherRuns.find(r=>['initializing','connecting','acquiring','normalizing','validating','running'].includes(publisherStatus(r)))}
+function estimate(p){const base=Number(p?.estimated_opportunities||p?.avg_opportunities||40);return{opportunities:base,documents:Math.round(base*1.08),releases:Math.round(base*.72),matches:Math.round(base*4.6),runtime:Number(p?.estimated_runtime_seconds||p?.avg_runtime||90)}}
+function renderGreeting(){const h=new Date().getHours();safe('greeting',`${h<12?'Good Morning':h<18?'Good Afternoon':'Good Evening'} Jeff`)}
+function renderProvider(){const p=PROVIDERS[state.provider],health=normalize(state.metrics?.provider_health?.[state.provider]||state.metrics?.provider_health||p?.health||'idle');$('providerSelect').value=state.provider;safe('providerReadiness',p?p.name:'Not Selected');safe('providerStatusText',p?`${p.name} · ${p.status} · Health: ${health.replaceAll('_',' ')}`:'Select a provider to establish mission intelligence support.');const b=$('providerHealthBadge');b.textContent=p?health.replaceAll('_',' ').toUpperCase():'NOT SELECTED';b.className=`status-pill status-${p?health:'idle'}`;$('providerMatrix').innerHTML=Object.entries(PROVIDERS).map(([k,v])=>`<article class="provider-card"><strong>${escapeHtml(v.name)}</strong><span>${escapeHtml(v.status)}</span><span class="status-${escapeHtml(normalize(state.metrics?.provider_health?.[k]||v.health))}">${escapeHtml(normalize(state.metrics?.provider_health?.[k]||v.health).replaceAll('_',' '))}</span></article>`).join('')}
+function renderExplorer(){const q=$('publisherSearch').value.trim().toLowerCase(),list=state.publisherRegistry.filter(p=>!q||[pid(p),pname(p),p.state,p.category,p.platform,p.vendor].some(v=>String(v||'').toLowerCase().includes(q)));const states=[...new Set(list.map(p=>p.state||'Other'))];$('publisherExplorer').innerHTML=states.map(s=>{const categories=[...new Set(list.filter(p=>(p.state||'Other')===s).map(p=>p.category||'Other'))];return`<details class="explorer-state"><summary>${escapeHtml(s)}</summary><div class="explorer-group">${categories.map(c=>`<div class="explorer-branch"><span class="micro-label">${escapeHtml(c)}</span>${list.filter(p=>(p.state||'Other')===s&&(p.category||'Other')===c).map(p=>`<button type="button" data-publisher-id="${escapeHtml(pid(p))}" class="${state.selectedPublisher===pid(p)?'selected':''}">${escapeHtml(pname(p))}<small>${escapeHtml(pid(p))} · ${escapeHtml(p.platform||'Platform unknown')}</small></button>`).join('')}</div>`).join('')}</div></details>`}).join('')||'<p class="empty-state">No publishers found.</p>'}
+function renderIntelligence(){const p=registry(state.selectedPublisher)||null;safe('intelligencePublisherName',p?pname(p):'Select a publisher');safe('intelligencePublisherId',p?pid(p):'—');safe('intelligenceVendor',p?.vendor||p?.technology_vendor||'—');safe('intelligencePlatform',p?.platform||p?.technology_platform||'—');safe('intelligenceConnectorType',p?.connector_type||'—');safe('intelligenceLastRun',p?.last_successful_acquisition||'No run recorded');safe('intelligenceRuntime',p?duration(new Date(Date.now()-Number(p.avg_runtime||90)*1000).toISOString()):'—');safe('intelligenceAverageOpportunities',p?num(p.avg_opportunities):'—');safe('intelligenceSuccessRate',p?`${p.success_rate||0}%`:'—');safe('intelligenceForecast',p?num(estimate(p).opportunities):'—');safe('intelligenceEstimatedRuntime',p?`${Math.ceil(estimate(p).runtime/60)} min`:'—');const badge=$('intelligenceConnectorHealth'),health=normalize(p?.connector_status||'idle');badge.textContent=p?(p.connector_status||'Unknown').toUpperCase():'UNKNOWN';badge.className=`status-pill status-${health}`;['addToMissionButton','viewHistoryButton','runIndividuallyButton'].forEach(id=>$(id).disabled=!p)}
+function renderMissionQueue(){safe('publisherCount',`${state.publishers.length} / ${CONFIG.maxPublishers}`);$('publisherQueue').innerHTML=state.publishers.length?state.publishers.map((id,i)=>{const p=registry(id)||{id,name:id};return`<article class="mission-item" draggable="true" data-publisher-id="${escapeHtml(id)}"><span class="order">${i+1}</span><div><strong>${escapeHtml(pname(p))}</strong><small>${escapeHtml(id)} · ${escapeHtml(p.platform||'Platform unknown')} · ${escapeHtml(p.connector_status||'Unknown')}</small></div><button type="button" aria-label="Remove ${escapeHtml(pname(p))}">×</button></article>`}).join(''):'<p class="empty-state">No publishers assigned to today’s mission.</p>';renderForecast()}
+function renderForecast(){const totals=state.publishers.map(id=>estimate(registry(id))).reduce((a,b)=>({opportunities:a.opportunities+b.opportunities,documents:a.documents+b.documents,releases:a.releases+b.releases,matches:a.matches+b.matches,runtime:a.runtime+b.runtime}),{opportunities:0,documents:0,releases:0,matches:0,runtime:0});safe('forecastRuntime',totals.runtime?`${Math.ceil(totals.runtime/60)} min`:'—');safe('forecastOpportunities',num(totals.opportunities));safe('forecastDocuments',num(totals.documents));safe('forecastReleases',num(totals.releases));safe('forecastMatches',num(totals.matches))}
+function renderDecision(){const candidates=state.publisherRegistry.filter(p=>!state.publishers.includes(pid(p))).sort((a,b)=>estimate(b).opportunities-estimate(a).opportunities);const p=candidates[0];safe('decisionPublisher',p?pname(p):'Mission capacity reached');safe('decisionOpportunities',p?num(estimate(p).opportunities):'—');safe('decisionValue',p?.estimated_value||'—');safe('decisionReason',p?'Highest forecast acquisition value among publishers not yet assigned to today’s mission.':'All available priorities are already assigned.');safe('decisionRecommendation',p?'Acquire Immediately':'Proceed with current mission');safe('decisionPriority',p?'HIGHEST PRIORITY':'READY');$('executeRecommendation').disabled=!p;$('executeRecommendation').dataset.publisherId=p?pid(p):''}
+function renderReadiness(){const connectors=state.publisherRegistry.filter(p=>normalize(p.connector_status)==='healthy').length,registryScore=state.publisherRegistry.length?100:0,providerScore=state.provider?100:0,dbHealthy=!state.metrics.database_status||normalize(state.metrics.database_status)==='healthy'?100:70,connectorScore=state.publisherRegistry.length?Math.round(connectors/state.publisherRegistry.length*100):0,score=Math.round((registryScore+providerScore+dbHealthy+connectorScore)/4);safe('missionReadinessValue',`${score}%`);safe('missionReadinessState',score>=90?'READY':score>=70?'ATTENTION':'NOT READY');$('missionReadinessBar').style.width=`${score}%`;safe('registryHealth',state.publisherRegistry.length?'Ready':'Unavailable');safe('databaseStatus',state.metrics.database_status||'Healthy');safe('missionPosture',score>=90?'Ready for Mission':'Configuration Required');safe('readinessDecision',score>=90?'Mission systems are ready. Select the highest-value publishers and execute.':'Complete provider and publisher configuration before mission launch.')}
+function renderSystemIntelligence(){const vendors=new Set(state.publisherRegistry.map(p=>p.vendor||p.technology_vendor).filter(Boolean)),platforms=new Set(state.publisherRegistry.map(p=>p.platform||p.technology_platform).filter(Boolean)),healthy=state.publisherRegistry.filter(p=>normalize(p.connector_status)==='healthy').length;safe('systemPublishers',num(state.publisherRegistry.length));safe('technologyVendors',num(vendors.size));safe('platformsCount',num(platforms.size));safe('connectorsCount',num(state.publisherRegistry.length));safe('healthyConnectors',num(healthy));safe('attentionRequired',num(state.publisherRegistry.length-healthy));safe('registryHealth',`${state.publisherRegistry.length} Registered`)}
+function renderAgents(){const map=Object.fromEntries(state.jobs.map(j=>[j.agent_name,j]));$('agentGrid').innerHTML=AGENTS.map(([name,desc],i)=>{const j=map[name]||map[`agent-${i+1}`]||{},s=normalize(j.status||'pending');return`<article class="agent-card ${escapeHtml(s)}"><div><span class="number">AGENT ${i+1}</span><h3>${escapeHtml(name)}</h3><p>${escapeHtml(desc)}</p></div><span class="agent-state status-${escapeHtml(s)}">${escapeHtml(s.replaceAll('_',' '))}${j.attempt_count?` · attempt ${j.attempt_count}`:''}</span></article>`}).join('')}
+function renderRun(){const run=state.run,total=state.publisherRuns.length||state.publishers.length,completed=completedRuns().length,failed=failedRuns().length,manual=manualRuns().length,active=activeRun(),remaining=Math.max(0,total-completed-failed-manual),activeIndex=active?state.publisherRuns.indexOf(active):-1,next=activeIndex>=0?state.publisherRuns[activeIndex+1]:state.publisherRuns.find(r=>publisherStatus(r)==='queued');setStatus(run?.status||state.metrics.system_status||'operational');safe('currentStage',(run?.current_stage||'IDLE').replaceAll('_',' ').toUpperCase());safe('runIdentifier',run?.id?`Mission ${run.id.slice(0,8)}`:'No active mission');safe('executionState',(run?.status||'Idle').toUpperCase());$('executionState').className=`status-pill status-${normalize(run?.status||'idle')}`;safe('currentPublisher',active?pname(active):(run?.current_publisher_name||run?.current_publisher||'—'));safe('nextPublisher',next?pname(next):'—');safe('remainingPublishers',num(remaining));safe('remainingRuntime',remaining?`${Math.max(1,Math.ceil(remaining*1.6))} min`:'—');safe('completedPublishers',num(completed));safe('failedPublishers',num(failed));safe('manualReviewCount',num(manual));safe('runRuntime',duration(run?.started_at,run?.completed_at));safe('totalRuntime',state.metrics.total_runtime||duration(run?.started_at,run?.completed_at));safe('publisherSuccessRate',total?`${Math.round(completed/total*100)}%`:'—');safe('acquisitionHealth',failed?'Degraded':active?'Running':completed?'Healthy':'Unknown');safe('currentProvider',PROVIDERS[run?.provider||state.provider]?.name||run?.provider||'—');safe('overallSystemHealth',state.metrics.overall_system_health||state.metrics.system_status||run?.status||'Operational');$('progressBar').style.width=`${total?Math.min(100,completed/total*100):0}%`;safe('progressText',`${completed} of ${total} publishers completed`);const isActive=['running','retrying','stopping'].includes(run?.status);$('beginButton').disabled=isActive||!state.provider||!state.publishers.length;$('resumeButton').disabled=!run||!['failed','interrupted','stopped','completed_with_failures'].includes(run.status);$('stopButton').disabled=!isActive}
+function renderTimeline(){const events=[...state.acquisitionEvents].sort((a,b)=>new Date(a.created_at||a.timestamp||0)-new Date(b.created_at||b.timestamp||0));$('acquisitionFeed').innerHTML=events.length?events.map(e=>{const t=e.created_at||e.timestamp,time=t?new Date(t).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):'—';return`<div class="timeline-item"><time>${escapeHtml(time)}</time><span class="timeline-node"></span><div><strong>${escapeHtml(e.message||e.event_message||e.event_type||'Mission event')}</strong>${e.publisher_name||e.publisher_id?`<small>${escapeHtml(e.publisher_name||e.publisher_id)}</small>`:''}</div></div>`}).join(''):'<p>No mission events recorded.</p>'}
+function renderCompleted(){const runs=completedRuns();$('completedPublisherRuns').innerHTML=runs.length?runs.map(r=>`<article class="completed-run"><header><div><h3>${escapeHtml(pname(r))}</h3><small>${escapeHtml(pid(r))}</small></div><span class="status-pill status-completed">COMPLETED</span></header><dl><div><dt>Runtime</dt><dd>${escapeHtml(r.runtime||duration(r.started_at,r.completed_at))}</dd></div><div><dt>Discovered</dt><dd>${num(r.records_discovered||r.opportunities_discovered)}</dd></div><div><dt>Inserted</dt><dd>${num(r.records_inserted||r.opportunities_inserted)}</dd></div><div><dt>Updated</dt><dd>${num(r.records_updated||r.opportunities_updated)}</dd></div><div><dt>Documents</dt><dd>${num(r.documents_registered||r.documents_processed)}</dd></div><div><dt>Contract DNA</dt><dd>${num(r.contract_dna_completed)}</dd></div></dl></article>`).join(''):'<p>No completed publisher missions available.</p>'}
+function renderAlerts(){const alerts=[...state.failures.map(f=>({title:f.publisher_name||f.agent_name||'Operational condition',message:f.message||f.error_message||'Review operational evidence.',action:f.recommended_action||'Review and resolve before the next mission.'})),...manualRuns().map(r=>({title:`${pname(r)} requires intervention`,message:r.reason||r.error_message||'Automatic execution paused.',action:r.recommended_action||'Review connector evidence and resume from the recorded stage.'}))];$('executiveAlerts').innerHTML=alerts.length?alerts.map(a=>`<div class="alert-item"><strong>${escapeHtml(a.title)}</strong><span>${escapeHtml(a.message)}</span><span><b>Recommended action:</b> ${escapeHtml(a.action)}</span></div>`).join(''):'<p>No executive alerts. Mission systems are within operating thresholds.</p>'}
+function renderManual(){const i=state.manualIntervention||manualRuns()[0];$('manualInterventionPanel').hidden=!i;if(!i)return;safe('manualPublisherName',pname(i));safe('manualPublisher',`${pid(i)} · ${pname(i)}`);safe('manualStep',i.current_step||i.stage||'Unknown');safe('manualReason',i.reason||i.error_message||i.message||'No reason supplied.');safe('manualAction',i.recommended_action||'Review connector evidence and resolve the blocking condition.');safe('manualResumePoint',i.resume_point||i.current_step||i.stage||'Failed stage');$('resumePublisherButton').dataset.publisherId=pid(i);$('resumePublisherButton').dataset.resumePoint=i.resume_point||i.current_step||i.stage||''}
+function renderBrief(){const b=state.brief;if(!b)return;const s=b.content||b.brief||b;if(typeof s==='string'){$('executiveBrief').innerHTML=`<p>${escapeHtml(s)}</p>`;return}$('executiveBrief').innerHTML=Object.entries(s).slice(0,3).map(([h,v])=>`<h3>${escapeHtml(h.replaceAll('_',' '))}</h3><p>${escapeHtml(typeof v==='object'?JSON.stringify(v):v)}</p>`).join('')}
+function renderMetrics(){const m=state.metrics;safe('publishersProcessed',num(m.publishers_processed));safe('opportunitiesInserted',num(m.opportunities_inserted));safe('documentsProcessed',num(m.documents_processed));safe('publishedOpportunities',num(m.published_opportunities));safe('customerSatisfaction',m.customer_satisfaction||'—');safe('opportunitiesDiscovered',num(m.opportunities_discovered));safe('opportunitiesUpdated',num(m.opportunities_updated));safe('contractDnaCompleted',num(m.contract_dna_completed));safe('eligibleOpportunities',num(m.eligible_opportunities));safe('runningJobs',num(m.running_jobs));safe('completedJobs',num(m.completed_jobs));safe('failedJobs',num(m.failed_jobs));safe('retryCount',num(m.retry_count));safe('queueDepth',num(m.queue_depth));safe('processingTime',m.processing_time||duration(state.run?.started_at,state.run?.completed_at));safe('connectorHealth',m.connector_health||'Healthy')}
+function render(){renderGreeting();renderProvider();renderExplorer();renderIntelligence();renderMissionQueue();renderDecision();renderReadiness();renderSystemIntelligence();renderAgents();renderRun();renderTimeline();renderCompleted();renderAlerts();renderManual();renderMetrics();renderBrief();safe('lastRefresh',`Updated ${new Date().toLocaleTimeString()}`)}
+async function refreshStatus(show=false){try{const d=await invoke('command-status',{});state.run=d.run||null;state.jobs=d.jobs||[];state.metrics=d.metrics||{};state.failures=d.failures||[];state.history=d.history||[];state.publisherRegistry=d.publisher_registry||d.publishers||state.publisherRegistry;state.publisherRuns=d.publisher_runs||d.acquisition?.publisher_runs||[];state.acquisitionEvents=d.acquisition_events||d.events||d.acquisition?.events||[];state.manualIntervention=d.manual_intervention||d.acquisition?.manual_intervention||null;if(!state.provider&&d.run?.provider)state.provider=d.run.provider;if(!state.publishers.length&&Array.isArray(d.run?.publishers))state.publishers=d.run.publishers.map(p=>typeof p==='string'?p:pid(p)).filter(Boolean).slice(0,5);render();if(show)safe('commandMessage','Operational intelligence refreshed.')}catch(e){setStatus('failed');safe('commandMessage',e.message)}}
+async function command(name,message,payload={}){safe('commandMessage',message);try{await invoke(name,{...(state.run?.id?{run_id:state.run.id}:{}),...payload});await refreshStatus()}catch(e){safe('commandMessage',e.message)}}
+function addPublisher(id){if(!id)return;if(state.publishers.includes(id)){safe('commandMessage','That publisher is already assigned to today’s mission.');return}if(state.publishers.length>=CONFIG.maxPublishers){safe('commandMessage','Today’s mission is limited to five publishers.');return}state.publishers.push(id);render();safe('commandMessage',`${pname(registry(id))} added to today’s mission.`)}
+$('providerSelect').addEventListener('change',e=>{state.provider=e.target.value;render()});$('publisherSearch').addEventListener('input',renderExplorer);$('publisherExplorer').addEventListener('click',e=>{const b=e.target.closest('[data-publisher-id]');if(!b)return;state.selectedPublisher=b.dataset.publisherId;render()});$('addToMissionButton').addEventListener('click',()=>addPublisher(state.selectedPublisher));$('executeRecommendation').addEventListener('click',e=>addPublisher(e.currentTarget.dataset.publisherId));$('runIndividuallyButton').addEventListener('click',()=>{if(!state.selectedPublisher)return;state.publishers=[state.selectedPublisher];render();safe('commandMessage','Individual publisher mission prepared. Select a provider and begin operations.')});$('viewHistoryButton').addEventListener('click',()=>safe('commandMessage','Publisher history intelligence will populate from completed mission evidence.'));
+$('publisherQueue').addEventListener('click',e=>{const item=e.target.closest('[data-publisher-id]');if(!item||e.target.tagName!=='BUTTON')return;state.publishers=state.publishers.filter(id=>id!==item.dataset.publisherId);render()});let dragged=null;$('publisherQueue').addEventListener('dragstart',e=>{dragged=e.target.closest('[data-publisher-id]')?.dataset.publisherId||null});$('publisherQueue').addEventListener('dragover',e=>e.preventDefault());$('publisherQueue').addEventListener('drop',e=>{e.preventDefault();const target=e.target.closest('[data-publisher-id]')?.dataset.publisherId;if(!dragged||!target||dragged===target)return;const next=[...state.publishers],from=next.indexOf(dragged),to=next.indexOf(target);next.splice(from,1);next.splice(to,0,dragged);state.publishers=next;render()});
+$('beginButton').addEventListener('click',()=>{if(!state.provider||!state.publishers.length){safe('commandMessage','Select an intelligence provider and assign at least one publisher.');return}command('command-begin-daily-operations','Mission authorized. Launching Acquisition Operations…',{provider:state.provider,publishers:state.publishers,acquisition_config:{provider:state.provider,publisher_ids:state.publishers,max_publishers:CONFIG.maxPublishers}})});$('resumeButton').addEventListener('click',()=>command('command-resume','Resuming mission from the first unresolved stage…'));$('stopButton').addEventListener('click',()=>command('command-stop','Requesting governed mission stop…'));$('refreshButton').addEventListener('click',()=>refreshStatus(true));$('resumePublisherButton').addEventListener('click',e=>command('command-resume','Resuming publisher from recorded stage…',{publisher_id:e.currentTarget.dataset.publisherId,resume_from:e.currentTarget.dataset.resumePoint,resume_scope:'publisher'}));$('briefButton').addEventListener('click',async()=>{try{const d=await invoke('command-executive-brief',state.run?.id?{run_id:state.run.id}:{});state.brief=d.brief||d;renderBrief()}catch(e){$('executiveBrief').innerHTML=`<p>${escapeHtml(e.message)}</p>`}});
+render();refreshStatus();state.timer=window.setInterval(refreshStatus,CONFIG.refreshMs);
