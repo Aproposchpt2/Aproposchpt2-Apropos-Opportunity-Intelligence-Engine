@@ -1,4 +1,5 @@
 [build]
+  command = "node scripts/generate-runtime-config.mjs"
   publish = "."
 
 [[headers]]
@@ -8,7 +9,7 @@
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "no-referrer"
     Cache-Control = "no-store"
-    Content-Security-Policy = "default-src 'self'; connect-src 'self' https://judislfknmhofcgzyozc.supabase.co; script-src 'self'; style-src 'self'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+    Content-Security-Policy = "default-src 'self'; connect-src 'self' https://judislfknmhofcgzyozc.supabase.co; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
 
 [[redirects]]
   from = "/*"
